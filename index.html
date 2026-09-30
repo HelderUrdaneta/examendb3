@@ -89,6 +89,14 @@
             flex-wrap: wrap;
         }
         .info-pregunta { font-weight: 600; color: #1e3c72; font-size: 1em; }
+        .tipo-tiempo {
+            font-size: 0.85em;
+            color: #666;
+            background: #e8eaf6;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
         .temporizador {
             display: flex;
             align-items: center;
@@ -98,13 +106,13 @@
             color: #333;
         }
         .temporizador .circulo {
-            width: 50px;
-            height: 50px;
+            width: 55px;
+            height: 55px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.1em;
+            font-size: 1.05em;
             font-weight: 700;
             color: white;
             background: #4caf50;
@@ -195,7 +203,7 @@
         /* Editor SQL */
         .sql-editor {
             width: 100%;
-            min-height: 120px;
+            min-height: 130px;
             padding: 14px;
             border: 2px solid #ddd;
             border-radius: 8px;
@@ -305,16 +313,15 @@
             font-weight: 600;
             vertical-align: middle;
         }
-        .badge-sql {
+        .aviso-tiempo-sql {
             display: inline-block;
             background: #2e7d32;
             color: white;
-            font-size: 0.75em;
-            padding: 2px 8px;
+            font-size: 0.8em;
+            padding: 4px 12px;
             border-radius: 12px;
-            margin-left: 8px;
+            margin-bottom: 10px;
             font-weight: 600;
-            vertical-align: middle;
         }
     </style>
 </head>
@@ -332,8 +339,11 @@
                 📝 <strong>Tipos de preguntas:</strong> Selección múltiple, Verdadero/Falso y <strong>Ejercicios prácticos de SQL</strong>
                 (deberás escribir la consulta).
                 <br><br>
-                ⏱️ <strong>Temporizador:</strong> Tienes <strong>45 segundos</strong> por pregunta. Si el tiempo se agota,
-                la pregunta se marca como incorrecta y avanza automáticamente.
+                ⏱️ <strong>Tiempos:</strong>
+                <br>• Selección Múltiple y Verdadero/Falso: <strong>45 segundos</strong>
+                <br>• Ejercicios SQL: <strong>120 segundos (2 minutos)</strong>
+                <br><br>
+                Si el tiempo se agota, la pregunta se marca como incorrecta y avanza automáticamente.
                 <br><br>
                 🎯 <strong>Puntaje:</strong> Cada pregunta vale <strong>1 punto</strong>. Nota máxima: <strong>20 puntos</strong>.
             </div>
@@ -350,6 +360,7 @@
         <div id="pantallaExamen" class="oculto">
             <div class="barra-superior">
                 <div class="info-pregunta" id="infoPregunta">Pregunta 1 de 20</div>
+                <div class="tipo-tiempo" id="tipoTiempo">⏱️ 45s</div>
                 <div class="temporizador">
                     <span>⏱️</span>
                     <div class="circulo" id="circuloTiempo">45</div>
@@ -377,255 +388,60 @@
 
     <script>
         // ============================================================
-        // BANCO DE PREGUNTAS - BASADO EN LA GUÍA DE BASES DE DATOS
+        // CONFIGURACIÓN DE TIEMPOS
+        // ============================================================
+        const TIEMPO_MULTIPLE_VF = 45;   // segundos para múltiple y V/F
+        const TIEMPO_SQL = 120;          // segundos para ejercicios SQL (2 minutos)
+
+        // ============================================================
+        // BANCO DE PREGUNTAS
         // ============================================================
         const bancoPreguntas = [
-            // ==================== DDL (Definición de Datos) ====================
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué comando DDL se utiliza para crear una nueva tabla en la base de datos?',
-                opciones: ['INSERT', 'CREATE TABLE', 'ALTER TABLE', 'ADD TABLE'],
-                correcta: 1,
-                explicacion: 'CREATE TABLE se usa para crear una nueva tabla con sus columnas y restricciones.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué comando DDL se usa para modificar la estructura de una tabla existente (agregar, modificar o eliminar columnas)?',
-                opciones: ['UPDATE', 'MODIFY', 'ALTER TABLE', 'CHANGE'],
-                correcta: 2,
-                explicacion: 'ALTER TABLE permite modificar la estructura de una tabla existente.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué comando DDL elimina completamente una tabla y su estructura?',
-                opciones: ['DELETE', 'DROP TABLE', 'TRUNCATE', 'REMOVE'],
-                correcta: 1,
-                explicacion: 'DROP TABLE elimina la tabla completa, incluyendo su estructura y datos.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Cuál es la diferencia principal entre TRUNCATE y DELETE?',
-                opciones: [
-                    'TRUNCATE es más lento que DELETE',
-                    'TRUNCATE elimina la estructura de la tabla',
-                    'TRUNCATE vacía la tabla rápidamente sin eliminar su estructura',
-                    'DELETE no se puede usar con WHERE'
-                ],
-                correcta: 2,
-                explicacion: 'TRUNCATE vacía la tabla rápidamente (no permite WHERE) y mantiene la estructura. DELETE es más lento pero permite WHERE.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué restricción asegura que un campo no puede quedar vacío?',
-                opciones: ['UNIQUE', 'NOT NULL', 'DEFAULT', 'CHECK'],
-                correcta: 1,
-                explicacion: 'NOT NULL obliga a que el campo siempre tenga un valor.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué restricción garantiza que los valores de una columna sean únicos en toda la tabla?',
-                opciones: ['PRIMARY KEY', 'NOT NULL', 'UNIQUE', 'CHECK'],
-                correcta: 2,
-                explicacion: 'UNIQUE garantiza que no haya valores duplicados en esa columna.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué restricción se usa para validar que un valor cumpla una condición personalizada?',
-                opciones: ['DEFAULT', 'CHECK', 'UNIQUE', 'FOREIGN KEY'],
-                correcta: 1,
-                explicacion: 'CHECK permite validar condiciones, por ejemplo: CHECK (edad >= 18).'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué tipo de dato usarías para almacenar un precio con precisión exacta (ej: 19.99)?',
-                opciones: ['FLOAT', 'DOUBLE', 'DECIMAL(10,2)', 'INT'],
-                correcta: 2,
-                explicacion: 'DECIMAL(10,2) almacena números con precisión exacta: 10 dígitos totales, 2 decimales.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué tipo de dato almacena texto de longitud VARIABLE hasta 255 caracteres?',
-                opciones: ['CHAR(255)', 'VARCHAR(255)', 'TEXT', 'LONGTEXT'],
-                correcta: 1,
-                explicacion: 'VARCHAR(255) almacena texto de longitud variable hasta 255 caracteres.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué comando DDL se usa para renombrar una tabla u objeto?',
-                opciones: ['ALTER', 'RENAME', 'CHANGE', 'MODIFY'],
-                correcta: 1,
-                explicacion: 'RENAME se usa para renombrar objetos de la base de datos.'
-            },
-
-            // ==================== DML (Manipulación de Datos) ====================
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué comando DML se usa para agregar nuevos registros a una tabla?',
-                opciones: ['ADD', 'INSERT INTO', 'CREATE', 'UPDATE'],
-                correcta: 1,
-                explicacion: 'INSERT INTO agrega nuevos registros a una tabla.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué comando DML se usa para consultar datos de una o varias tablas?',
-                opciones: ['GET', 'SELECT', 'READ', 'FIND'],
-                correcta: 1,
-                explicacion: 'SELECT es el comando para consultar/leer datos.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué comando DML se usa para modificar datos existentes en una tabla?',
-                opciones: ['MODIFY', 'ALTER', 'UPDATE', 'CHANGE'],
-                correcta: 2,
-                explicacion: 'UPDATE modifica los datos existentes en una tabla.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué comando DML se usa para eliminar registros específicos de una tabla?',
-                opciones: ['DROP', 'REMOVE', 'DELETE', 'TRUNCATE'],
-                correcta: 2,
-                explicacion: 'DELETE elimina registros específicos (permite WHERE).'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué cláusula se usa en SELECT para filtrar registros según una condición?',
-                opciones: ['ORDER BY', 'GROUP BY', 'WHERE', 'HAVING'],
-                correcta: 2,
-                explicacion: 'WHERE filtra los registros que cumplen una condición.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué cláusula se usa para ordenar los resultados de una consulta?',
-                opciones: ['SORT BY', 'ORDER BY', 'GROUP BY', 'ARRANGE BY'],
-                correcta: 1,
-                explicacion: 'ORDER BY ordena los resultados (ASC o DESC).'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué tipo de JOIN devuelve solo las filas que tienen coincidencia en ambas tablas?',
-                opciones: ['LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'FULL JOIN'],
-                correcta: 2,
-                explicacion: 'INNER JOIN devuelve solo las filas con coincidencia en ambas tablas.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué función de agregación se usa para contar registros?',
-                opciones: ['SUM()', 'COUNT()', 'AVG()', 'MAX()'],
-                correcta: 1,
-                explicacion: 'COUNT() cuenta el número de registros.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué cláusula se usa para agrupar filas que tienen valores iguales en columnas específicas?',
-                opciones: ['ORDER BY', 'GROUP BY', 'WHERE', 'PARTITION BY'],
-                correcta: 1,
-                explicacion: 'GROUP BY agrupa filas con valores iguales para aplicar funciones de agregación.'
-            },
-            {
-                tipo: 'multiple',
-                enunciado: '¿Qué cláusula se usa para filtrar grupos después de un GROUP BY?',
-                opciones: ['WHERE', 'HAVING', 'FILTER', 'AFTER'],
-                correcta: 1,
-                explicacion: 'HAVING filtra grupos después de GROUP BY (WHERE filtra antes).'
-            },
+            // ==================== DDL / DML TEÓRICAS ====================
+            { tipo: 'multiple', enunciado: '¿Qué comando DDL se utiliza para crear una nueva tabla en la base de datos?', opciones: ['INSERT', 'CREATE TABLE', 'ALTER TABLE', 'ADD TABLE'], correcta: 1, explicacion: 'CREATE TABLE se usa para crear una nueva tabla con sus columnas y restricciones.' },
+            { tipo: 'multiple', enunciado: '¿Qué comando DDL se usa para modificar la estructura de una tabla existente?', opciones: ['UPDATE', 'MODIFY', 'ALTER TABLE', 'CHANGE'], correcta: 2, explicacion: 'ALTER TABLE permite modificar la estructura de una tabla existente.' },
+            { tipo: 'multiple', enunciado: '¿Qué comando DDL elimina completamente una tabla y su estructura?', opciones: ['DELETE', 'DROP TABLE', 'TRUNCATE', 'REMOVE'], correcta: 1, explicacion: 'DROP TABLE elimina la tabla completa, incluyendo su estructura y datos.' },
+            { tipo: 'multiple', enunciado: '¿Cuál es la diferencia principal entre TRUNCATE y DELETE?', opciones: ['TRUNCATE es más lento que DELETE', 'TRUNCATE elimina la estructura de la tabla', 'TRUNCATE vacía la tabla rápidamente sin eliminar su estructura', 'DELETE no se puede usar con WHERE'], correcta: 2, explicacion: 'TRUNCATE vacía la tabla rápidamente (no permite WHERE) y mantiene la estructura.' },
+            { tipo: 'multiple', enunciado: '¿Qué restricción asegura que un campo no puede quedar vacío?', opciones: ['UNIQUE', 'NOT NULL', 'DEFAULT', 'CHECK'], correcta: 1, explicacion: 'NOT NULL obliga a que el campo siempre tenga un valor.' },
+            { tipo: 'multiple', enunciado: '¿Qué restricción garantiza que los valores de una columna sean únicos?', opciones: ['PRIMARY KEY', 'NOT NULL', 'UNIQUE', 'CHECK'], correcta: 2, explicacion: 'UNIQUE garantiza que no haya valores duplicados en esa columna.' },
+            { tipo: 'multiple', enunciado: '¿Qué restricción se usa para validar que un valor cumpla una condición personalizada?', opciones: ['DEFAULT', 'CHECK', 'UNIQUE', 'FOREIGN KEY'], correcta: 1, explicacion: 'CHECK permite validar condiciones, por ejemplo: CHECK (edad >= 18).' },
+            { tipo: 'multiple', enunciado: '¿Qué tipo de dato usarías para almacenar un precio con precisión exacta?', opciones: ['FLOAT', 'DOUBLE', 'DECIMAL(10,2)', 'INT'], correcta: 2, explicacion: 'DECIMAL(10,2) almacena números con precisión exacta: 10 dígitos, 2 decimales.' },
+            { tipo: 'multiple', enunciado: '¿Qué tipo de dato almacena texto de longitud VARIABLE hasta 255 caracteres?', opciones: ['CHAR(255)', 'VARCHAR(255)', 'TEXT', 'LONGTEXT'], correcta: 1, explicacion: 'VARCHAR(255) almacena texto de longitud variable hasta 255 caracteres.' },
+            { tipo: 'multiple', enunciado: '¿Qué comando DDL se usa para renombrar una tabla u objeto?', opciones: ['ALTER', 'RENAME', 'CHANGE', 'MODIFY'], correcta: 1, explicacion: 'RENAME se usa para renombrar objetos de la base de datos.' },
+            { tipo: 'multiple', enunciado: '¿Qué comando DML se usa para agregar nuevos registros a una tabla?', opciones: ['ADD', 'INSERT INTO', 'CREATE', 'UPDATE'], correcta: 1, explicacion: 'INSERT INTO agrega nuevos registros a una tabla.' },
+            { tipo: 'multiple', enunciado: '¿Qué comando DML se usa para consultar datos de una o varias tablas?', opciones: ['GET', 'SELECT', 'READ', 'FIND'], correcta: 1, explicacion: 'SELECT es el comando para consultar/leer datos.' },
+            { tipo: 'multiple', enunciado: '¿Qué comando DML se usa para modificar datos existentes en una tabla?', opciones: ['MODIFY', 'ALTER', 'UPDATE', 'CHANGE'], correcta: 2, explicacion: 'UPDATE modifica los datos existentes en una tabla.' },
+            { tipo: 'multiple', enunciado: '¿Qué comando DML se usa para eliminar registros específicos de una tabla?', opciones: ['DROP', 'REMOVE', 'DELETE', 'TRUNCATE'], correcta: 2, explicacion: 'DELETE elimina registros específicos (permite WHERE).' },
+            { tipo: 'multiple', enunciado: '¿Qué cláusula se usa en SELECT para filtrar registros según una condición?', opciones: ['ORDER BY', 'GROUP BY', 'WHERE', 'HAVING'], correcta: 2, explicacion: 'WHERE filtra los registros que cumplen una condición.' },
+            { tipo: 'multiple', enunciado: '¿Qué cláusula se usa para ordenar los resultados de una consulta?', opciones: ['SORT BY', 'ORDER BY', 'GROUP BY', 'ARRANGE BY'], correcta: 1, explicacion: 'ORDER BY ordena los resultados (ASC o DESC).' },
+            { tipo: 'multiple', enunciado: '¿Qué tipo de JOIN devuelve solo las filas con coincidencia en ambas tablas?', opciones: ['LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'FULL JOIN'], correcta: 2, explicacion: 'INNER JOIN devuelve solo las filas con coincidencia en ambas tablas.' },
+            { tipo: 'multiple', enunciado: '¿Qué función de agregación se usa para contar registros?', opciones: ['SUM()', 'COUNT()', 'AVG()', 'MAX()'], correcta: 1, explicacion: 'COUNT() cuenta el número de registros.' },
+            { tipo: 'multiple', enunciado: '¿Qué cláusula se usa para agrupar filas con valores iguales?', opciones: ['ORDER BY', 'GROUP BY', 'WHERE', 'PARTITION BY'], correcta: 1, explicacion: 'GROUP BY agrupa filas con valores iguales para aplicar funciones de agregación.' },
+            { tipo: 'multiple', enunciado: '¿Qué cláusula se usa para filtrar grupos después de un GROUP BY?', opciones: ['WHERE', 'HAVING', 'FILTER', 'AFTER'], correcta: 1, explicacion: 'HAVING filtra grupos después de GROUP BY (WHERE filtra antes).' },
+            { tipo: 'multiple', enunciado: '¿Qué comando se usa para iniciar una transacción en SQL?', opciones: ['BEGIN TRANSACTION', 'START TRANSACTION', 'OPEN TRANSACTION', 'INIT TRANSACTION'], correcta: 1, explicacion: 'START TRANSACTION inicia una transacción en MySQL.' },
+            { tipo: 'multiple', enunciado: '¿Qué comando confirma los cambios de una transacción?', opciones: ['SAVE', 'COMMIT', 'APPLY', 'CONFIRM'], correcta: 1, explicacion: 'COMMIT confirma permanentemente los cambios de la transacción.' },
 
             // ==================== VERDADERO / FALSO ====================
-            {
-                tipo: 'vf',
-                enunciado: 'DDL se usa para manipular los datos dentro de las tablas (INSERT, UPDATE, DELETE).',
-                correcta: false,
-                explicacion: 'Falso. DDL define/modifica la ESTRUCTURA. DML manipula los DATOS.'
-            },
-            {
-                tipo: 'vf',
-                enunciado: 'CREATE, ALTER, DROP y TRUNCATE son comandos DDL.',
-                correcta: true,
-                explicacion: 'Verdadero. Todos son comandos del Lenguaje de Definición de Datos.'
-            },
-            {
-                tipo: 'vf',
-                enunciado: 'INSERT, SELECT, UPDATE y DELETE son comandos DML.',
-                correcta: true,
-                explicacion: 'Verdadero. Son los comandos del Lenguaje de Manipulación de Datos.'
-            },
-            {
-                tipo: 'vf',
-                enunciado: 'Una clave primaria (PRIMARY KEY) puede contener valores NULL.',
-                correcta: false,
-                explicacion: 'Falso. PRIMARY KEY no permite NULL y debe ser única.'
-            },
-            {
-                tipo: 'vf',
-                enunciado: 'Una clave foránea (FOREIGN KEY) referencia a la clave primaria de otra tabla.',
-                correcta: true,
-                explicacion: 'Verdadero. FOREIGN KEY crea una relación con otra tabla.'
-            },
-            {
-                tipo: 'vf',
-                enunciado: 'El comando DELETE sin cláusula WHERE elimina todos los registros de la tabla.',
-                correcta: true,
-                explicacion: 'Verdadero. DELETE FROM tabla sin WHERE elimina todos los registros.'
-            },
-            {
-                tipo: 'vf',
-                enunciado: 'TRUNCATE permite usar la cláusula WHERE para filtrar qué registros eliminar.',
-                correcta: false,
-                explicacion: 'Falso. TRUNCATE vacía toda la tabla, no permite WHERE.'
-            },
-            {
-                tipo: 'vf',
-                enunciado: 'Una transacción garantiza que varias operaciones se ejecuten como una sola unidad (todo o nada).',
-                correcta: true,
-                explicacion: 'Verdadero. Las transacciones cumplen con ACID (Atomicidad, Consistencia, Aislamiento, Durabilidad).'
-            },
-            {
-                tipo: 'vf',
-                enunciado: 'SQL es un lenguaje de programación, no un lenguaje de consultas.',
-                correcta: false,
-                explicacion: 'Falso. SQL es un lenguaje de consultas (Structured Query Language) para interactuar con bases de datos.'
-            },
-            {
-                tipo: 'vf',
-                enunciado: 'La cláusula WHERE se ejecuta después de GROUP BY en una consulta SQL.',
-                correcta: false,
-                explicacion: 'Falso. WHERE se ejecuta ANTES de GROUP BY. HAVING se ejecuta después.'
-            },
-            {
-                tipo: 'vf',
-                enunciado: 'Un índice acelera las búsquedas en una tabla pero ralentiza las inserciones.',
-                correcta: true,
-                explicacion: 'Verdadero. Los índices aceleran SELECT pero añaden coste en INSERT/UPDATE.'
-            },
-            {
-                tipo: 'vf',
-                enunciado: 'Una vista (VIEW) almacena físicamente los datos como una tabla normal.',
-                correcta: false,
-                explicacion: 'Falso. Una vista es una tabla virtual basada en el resultado de una consulta.'
-            },
-            {
-                tipo: 'vf',
-                enunciado: 'AUTO_INCREMENT permite que un campo numérico se genere automáticamente.',
-                correcta: true,
-                explicacion: 'Verdadero. AUTO_INCREMENT genera valores únicos automáticamente.'
-            },
-            {
-                tipo: 'vf',
-                enunciado: 'La restricción DEFAULT establece un valor por defecto si no se especifica uno.',
-                correcta: true,
-                explicacion: 'Verdadero. DEFAULT asigna un valor cuando no se proporciona uno.'
-            },
-            {
-                tipo: 'vf',
-                enunciado: 'El comando UPDATE sin cláusula WHERE actualiza todos los registros de la tabla.',
-                correcta: true,
-                explicacion: 'Verdadero. UPDATE tabla SET col = valor sin WHERE actualiza TODOS los registros.'
-            },
+            { tipo: 'vf', enunciado: 'DDL se usa para manipular los datos dentro de las tablas (INSERT, UPDATE, DELETE).', correcta: false, explicacion: 'Falso. DDL define/modifica la ESTRUCTURA. DML manipula los DATOS.' },
+            { tipo: 'vf', enunciado: 'CREATE, ALTER, DROP y TRUNCATE son comandos DDL.', correcta: true, explicacion: 'Verdadero. Todos son comandos del Lenguaje de Definición de Datos.' },
+            { tipo: 'vf', enunciado: 'INSERT, SELECT, UPDATE y DELETE son comandos DML.', correcta: true, explicacion: 'Verdadero. Son los comandos del Lenguaje de Manipulación de Datos.' },
+            { tipo: 'vf', enunciado: 'Una clave primaria (PRIMARY KEY) puede contener valores NULL.', correcta: false, explicacion: 'Falso. PRIMARY KEY no permite NULL y debe ser única.' },
+            { tipo: 'vf', enunciado: 'Una clave foránea (FOREIGN KEY) referencia a la clave primaria de otra tabla.', correcta: true, explicacion: 'Verdadero. FOREIGN KEY crea una relación con otra tabla.' },
+            { tipo: 'vf', enunciado: 'El comando DELETE sin cláusula WHERE elimina todos los registros de la tabla.', correcta: true, explicacion: 'Verdadero. DELETE FROM tabla sin WHERE elimina todos los registros.' },
+            { tipo: 'vf', enunciado: 'TRUNCATE permite usar la cláusula WHERE para filtrar qué registros eliminar.', correcta: false, explicacion: 'Falso. TRUNCATE vacía toda la tabla, no permite WHERE.' },
+            { tipo: 'vf', enunciado: 'Una transacción garantiza que varias operaciones se ejecuten como una sola unidad (todo o nada).', correcta: true, explicacion: 'Verdadero. Las transacciones cumplen con ACID.' },
+            { tipo: 'vf', enunciado: 'SQL es un lenguaje de programación, no un lenguaje de consultas.', correcta: false, explicacion: 'Falso. SQL es un lenguaje de consultas (Structured Query Language).' },
+            { tipo: 'vf', enunciado: 'La cláusula WHERE se ejecuta después de GROUP BY en una consulta SQL.', correcta: false, explicacion: 'Falso. WHERE se ejecuta ANTES de GROUP BY. HAVING se ejecuta después.' },
+            { tipo: 'vf', enunciado: 'Un índice acelera las búsquedas en una tabla pero ralentiza las inserciones.', correcta: true, explicacion: 'Verdadero. Los índices aceleran SELECT pero añaden coste en INSERT/UPDATE.' },
+            { tipo: 'vf', enunciado: 'Una vista (VIEW) almacena físicamente los datos como una tabla normal.', correcta: false, explicacion: 'Falso. Una vista es una tabla virtual basada en el resultado de una consulta.' },
+            { tipo: 'vf', enunciado: 'AUTO_INCREMENT permite que un campo numérico se genere automáticamente.', correcta: true, explicacion: 'Verdadero. AUTO_INCREMENT genera valores únicos automáticamente.' },
+            { tipo: 'vf', enunciado: 'La restricción DEFAULT establece un valor por defecto si no se especifica uno.', correcta: true, explicacion: 'Verdadero. DEFAULT asigna un valor cuando no se proporciona uno.' },
+            { tipo: 'vf', enunciado: 'El comando UPDATE sin cláusula WHERE actualiza todos los registros de la tabla.', correcta: true, explicacion: 'Verdadero. UPDATE tabla SET col = valor sin WHERE actualiza TODOS.' },
 
-            // ==================== EJERCICIOS PRÁCTICOS SQL ====================
+            // ==================== EJERCICIOS SQL ====================
             {
                 tipo: 'sql',
                 enunciado: 'Escribe la consulta DDL para crear una tabla llamada "clientes" con las columnas: id (entero, clave primaria, autoincremental), nombre (texto variable de 100, no nulo), email (texto variable de 150, único) y ciudad (texto variable de 50).',
-                respuestaEsperada: ['create table clientes', 'id int primary key auto_increment', 'nombre varchar(100) not null', 'email varchar(150) unique', 'ciudad varchar(50)'],
                 palabrasClave: ['create table clientes', 'int', 'primary key', 'auto_increment', 'varchar', 'not null', 'unique'],
                 explicacion: 'CREATE TABLE clientes (id INT PRIMARY KEY AUTO_INCREMENT, nombre VARCHAR(100) NOT NULL, email VARCHAR(150) UNIQUE, ciudad VARCHAR(50));',
                 pista: 'Usa CREATE TABLE, INT, PRIMARY KEY, AUTO_INCREMENT, VARCHAR, NOT NULL, UNIQUE.'
@@ -633,7 +449,6 @@
             {
                 tipo: 'sql',
                 enunciado: 'Escribe la consulta DML para insertar un nuevo cliente en la tabla "clientes" con los valores: nombre="Ana García", email="ana@email.com", ciudad="Madrid".',
-                respuestaEsperada: ['insert into clientes', 'values', 'ana garcía', 'ana@email.com', 'madrid'],
                 palabrasClave: ['insert into clientes', 'values', 'ana', 'email', 'madrid'],
                 explicacion: "INSERT INTO clientes (nombre, email, ciudad) VALUES ('Ana García', 'ana@email.com', 'Madrid');",
                 pista: 'Usa INSERT INTO ... (columnas) VALUES (valores).'
@@ -641,7 +456,6 @@
             {
                 tipo: 'sql',
                 enunciado: 'Escribe la consulta DML para seleccionar el nombre y email de todos los clientes cuya ciudad sea "Madrid".',
-                respuestaEsperada: ['select nombre', 'email', 'from clientes', 'where ciudad', 'madrid'],
                 palabrasClave: ['select', 'nombre', 'email', 'from clientes', 'where', 'ciudad', 'madrid'],
                 explicacion: "SELECT nombre, email FROM clientes WHERE ciudad = 'Madrid';",
                 pista: 'Usa SELECT columnas FROM tabla WHERE condición.'
@@ -649,7 +463,6 @@
             {
                 tipo: 'sql',
                 enunciado: 'Escribe la consulta DML para actualizar el email del cliente con id=5 a "nuevo@email.com".',
-                respuestaEsperada: ['update clientes', 'set email', 'nuevo@email.com', 'where id', '5'],
                 palabrasClave: ['update clientes', 'set', 'email', 'nuevo@email.com', 'where', 'id', '5'],
                 explicacion: "UPDATE clientes SET email = 'nuevo@email.com' WHERE id = 5;",
                 pista: 'Usa UPDATE tabla SET columna = valor WHERE condición.'
@@ -657,7 +470,6 @@
             {
                 tipo: 'sql',
                 enunciado: 'Escribe la consulta DML para eliminar todos los clientes de la ciudad "Barcelona".',
-                respuestaEsperada: ['delete from clientes', 'where ciudad', 'barcelona'],
                 palabrasClave: ['delete from clientes', 'where', 'ciudad', 'barcelona'],
                 explicacion: "DELETE FROM clientes WHERE ciudad = 'Barcelona';",
                 pista: 'Usa DELETE FROM tabla WHERE condición.'
@@ -665,7 +477,6 @@
             {
                 tipo: 'sql',
                 enunciado: 'Escribe una consulta DML que cuente cuántos clientes hay por ciudad, mostrando la ciudad y el total. Ordena de mayor a menor.',
-                respuestaEsperada: ['select ciudad', 'count', 'from clientes', 'group by ciudad', 'order by', 'desc'],
                 palabrasClave: ['select', 'ciudad', 'count', 'from clientes', 'group by', 'ciudad', 'order by', 'desc'],
                 explicacion: "SELECT ciudad, COUNT(*) AS total FROM clientes GROUP BY ciudad ORDER BY total DESC;",
                 pista: 'Usa SELECT ciudad, COUNT(*) ... GROUP BY ciudad ORDER BY ... DESC.'
@@ -673,7 +484,6 @@
             {
                 tipo: 'sql',
                 enunciado: 'Escribe una consulta DML que seleccione los libros con precio mayor al precio promedio de todos los libros (usa una subconsulta).',
-                respuestaEsperada: ['select', 'from libros', 'where precio', 'select avg(precio)', 'from libros'],
                 palabrasClave: ['select', 'from libros', 'where', 'precio', 'avg', 'precio'],
                 explicacion: "SELECT * FROM libros WHERE precio > (SELECT AVG(precio) FROM libros);",
                 pista: 'Usa una subconsulta: SELECT AVG(precio) FROM libros.'
@@ -681,7 +491,6 @@
             {
                 tipo: 'sql',
                 enunciado: 'Escribe una consulta DML que muestre el nombre del autor y la cantidad de libros que tiene, usando INNER JOIN entre autores y libros, agrupando por autor.',
-                respuestaEsperada: ['select', 'nombre', 'count', 'from autores', 'inner join libros', 'on', 'group by'],
                 palabrasClave: ['select', 'nombre', 'count', 'from autores', 'join', 'libros', 'on', 'group by'],
                 explicacion: "SELECT a.nombre, COUNT(*) AS total FROM autores a INNER JOIN libros l ON a.autor_id = l.autor_id GROUP BY a.nombre;",
                 pista: 'Usa INNER JOIN ... ON ... GROUP BY.'
@@ -689,7 +498,6 @@
             {
                 tipo: 'sql',
                 enunciado: 'Escribe la consulta DDL para agregar una columna llamada "telefono" de tipo VARCHAR(20) a la tabla "clientes".',
-                respuestaEsperada: ['alter table clientes', 'add column telefono', 'varchar(20)'],
                 palabrasClave: ['alter table clientes', 'add column', 'telefono', 'varchar', '20'],
                 explicacion: "ALTER TABLE clientes ADD COLUMN telefono VARCHAR(20);",
                 pista: 'Usa ALTER TABLE ... ADD COLUMN ...'
@@ -697,18 +505,11 @@
             {
                 tipo: 'sql',
                 enunciado: 'Escribe una consulta DML que muestre los libros ordenados por precio de mayor a menor y solo muestre los 5 más caros (usa LIMIT).',
-                respuestaEsperada: ['select', 'from libros', 'order by precio', 'desc', 'limit 5'],
                 palabrasClave: ['select', 'from libros', 'order by', 'precio', 'desc', 'limit', '5'],
                 explicacion: "SELECT * FROM libros ORDER BY precio DESC LIMIT 5;",
                 pista: 'Usa ORDER BY ... DESC LIMIT 5.'
             }
         ];
-
-        // ============================================================
-        // CONFIGURACIÓN
-        // ============================================================
-        const TIEMPO_POR_PREGUNTA = 45; // segundos (más tiempo para SQL)
-        const TOTAL_PREGUNTAS = 20;
 
         // ============================================================
         // ESTADO DEL EXAMEN
@@ -717,7 +518,8 @@
         let nombreEstudiante = '';
         let respuestasUsuario = [];
         let indiceActual = 0;
-        let tiempoRestante = TIEMPO_POR_PREGUNTA;
+        let tiempoRestante = 0;
+        let tiempoTotalPregunta = 0;
         let intervaloTemporizador = null;
         let respuestasCorrectas = 0;
         let preguntasAgotadas = 0;
@@ -730,6 +532,7 @@
         const pantallaResultado = document.getElementById('pantallaResultado');
         const contenedorPreguntas = document.getElementById('contenedorPreguntas');
         const infoPregunta = document.getElementById('infoPregunta');
+        const tipoTiempo = document.getElementById('tipoTiempo');
         const circuloTiempo = document.getElementById('circuloTiempo');
         const barraTiempo = document.getElementById('barraTiempo');
         const resultadoFinal = document.getElementById('resultadoFinal');
@@ -755,7 +558,6 @@
             const vf = bancoPreguntas.filter(p => p.tipo === 'vf');
             const sql = bancoPreguntas.filter(p => p.tipo === 'sql');
 
-            // 8 múltiple + 6 V/F + 6 SQL = 20
             const seleccionMultiples = mezclar(multiples).slice(0, 8);
             const seleccionVF = mezclar(vf).slice(0, 6);
             const seleccionSQL = mezclar(sql).slice(0, 6);
@@ -766,9 +568,10 @@
         // ============================================================
         // TEMPORIZADOR
         // ============================================================
-        function iniciarTemporizador() {
+        function iniciarTemporizador(tiempo) {
             detenerTemporizador();
-            tiempoRestante = TIEMPO_POR_PREGUNTA;
+            tiempoRestante = tiempo;
+            tiempoTotalPregunta = tiempo;
             actualizarVistaTemporizador();
 
             intervaloTemporizador = setInterval(() => {
@@ -789,17 +592,29 @@
         }
 
         function actualizarVistaTemporizador() {
-            circuloTiempo.textContent = tiempoRestante;
-            const porcentaje = (tiempoRestante / TIEMPO_POR_PREGUNTA) * 100;
+            // Formato mm:ss si es mayor a 60 segundos
+            if (tiempoTotalPregunta > 60) {
+                const min = Math.floor(tiempoRestante / 60);
+                const seg = tiempoRestante % 60;
+                circuloTiempo.textContent = `${min}:${seg.toString().padStart(2, '0')}`;
+            } else {
+                circuloTiempo.textContent = tiempoRestante;
+            }
+
+            const porcentaje = (tiempoRestante / tiempoTotalPregunta) * 100;
             barraTiempo.style.width = porcentaje + '%';
 
             circuloTiempo.classList.remove('advertencia', 'peligro');
             barraTiempo.classList.remove('advertencia', 'peligro');
 
-            if (tiempoRestante <= 10) {
+            // Umbrales proporcionales al tiempo total
+            const umbralPeligro = tiempoTotalPregunta * 0.2;   // 20%
+            const umbralAdvertencia = tiempoTotalPregunta * 0.5; // 50%
+
+            if (tiempoRestante <= umbralPeligro) {
                 circuloTiempo.classList.add('peligro');
                 barraTiempo.classList.add('peligro');
-            } else if (tiempoRestante <= 22) {
+            } else if (tiempoRestante <= umbralAdvertencia) {
                 circuloTiempo.classList.add('advertencia');
                 barraTiempo.classList.add('advertencia');
             }
@@ -842,6 +657,21 @@
             const pregunta = preguntasSeleccionadas[indiceActual];
             infoPregunta.textContent = `Pregunta ${indiceActual + 1} de ${preguntasSeleccionadas.length}`;
 
+            // Determinar tiempo según tipo
+            const esSQL = pregunta.tipo === 'sql';
+            const tiempoPregunta = esSQL ? TIEMPO_SQL : TIEMPO_MULTIPLE_VF;
+
+            // Actualizar indicador de tipo de tiempo
+            if (esSQL) {
+                tipoTiempo.textContent = '⏱️ 2 minutos';
+                tipoTiempo.style.background = '#e8f5e9';
+                tipoTiempo.style.color = '#2e7d32';
+            } else {
+                tipoTiempo.textContent = '⏱️ 45 segundos';
+                tipoTiempo.style.background = '#e8eaf6';
+                tipoTiempo.style.color = '#1e3c72';
+            }
+
             const divPregunta = document.createElement('div');
             divPregunta.className = 'pregunta';
             divPregunta.id = `pregunta-${indiceActual}`;
@@ -852,6 +682,14 @@
             const tiposTexto = { multiple: 'Selección Múltiple', vf: 'Verdadero / Falso', sql: 'Ejercicio SQL' };
             spanTipo.textContent = tiposTexto[pregunta.tipo];
             divPregunta.appendChild(spanTipo);
+
+            // Aviso de tiempo para SQL
+            if (esSQL) {
+                const aviso = document.createElement('div');
+                aviso.className = 'aviso-tiempo-sql';
+                aviso.textContent = '⏱️ Tienes 2 minutos para escribir esta consulta';
+                divPregunta.appendChild(aviso);
+            }
 
             // Enunciado
             const pEnunciado = document.createElement('div');
@@ -918,7 +756,7 @@
             }
 
             contenedorPreguntas.appendChild(divPregunta);
-            iniciarTemporizador();
+            iniciarTemporizador(tiempoPregunta);
         }
 
         // ============================================================
@@ -951,20 +789,17 @@
 
             detenerTemporizador();
 
-            // Evaluar por palabras clave
             const palabrasClave = pregunta.palabrasClave.map(p => p.toLowerCase());
             const encontradas = palabrasClave.filter(p => respuesta.includes(p));
             const porcentaje = (encontradas.length / palabrasClave.length) * 100;
-            const esCorrecta = porcentaje >= 70; // 70% de coincidencia mínima
+            const esCorrecta = porcentaje >= 70;
 
             respuestasUsuario[index] = esCorrecta;
 
-            // Deshabilitar editor
             editor.disabled = true;
             const btn = editor.parentElement.querySelector('.btn');
             if (btn) btn.disabled = true;
 
-            // Mostrar resultado
             const divPregunta = document.getElementById(`pregunta-${index}`);
             const divResultado = document.createElement('div');
             divResultado.className = `sql-resultado ${esCorrecta ? 'ok' : 'error'}`;
@@ -1037,7 +872,6 @@
                 divPregunta.classList.add('incorrecta');
             }
 
-            // Resaltar opciones
             const labels = divPregunta.querySelectorAll('.opciones label');
             labels.forEach((label, i) => {
                 const radio = label.querySelector('input[type="radio"]');
