@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Examen Práctico de Bases de Datos - DDL y DML</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+        }
+        h1 {
+            text-align: center;
+            color: #1e3c72;
+            margin-bottom: 25px;
+            font-size: 1.8em;
+        }
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #1e3c72;
+            padding: 12px 18px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            color: #444;
+            font-size: 0.95em;
+        }
+        .info-box strong { color: #1e3c72; }
+        .form-group { margin-bottom: 20px; }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus { outline: none; border-color: #1e3c72; }
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(30, 60, 114, 0.4);
+        }
+        .btn-secondary { background: #e0e0e0; color: #333; }
+        .btn-secondary:hover { background: #d0d0d0; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* Barra superior */
+        .barra-superior {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f0f4ff;
+            padding: 12px 18px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #d0d9f0;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        .info-pregunta { font-weight: 600; color: #1e3c72; font-size: 1em; }
+        .temporizador {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 1.2em;
+            color: #333;
+        }
+        .temporizador .circulo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1em;
+            font-weight: 700;
+            color: white;
+            background: #4caf50;
+            transition: background 0.3s;
+        }
+        .temporizador .circulo.advertencia { background: #ff9800; }
+        .temporizador .circulo.peligro {
+            background: #f44336;
+            animation: pulso 0.5s infinite alternate;
+        }
+        @keyframes pulso {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+        .barra-tiempo {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .barra-tiempo-interna {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, #8bc34a);
+            border-radius: 4px;
+            transition: width 1s linear, background 0.3s;
+        }
+        .barra-tiempo-interna.advertencia { background: linear-gradient(90deg, #ff9800, #ffc107); }
+        .barra-tiempo-interna.peligro { background: linear-gradient(90deg, #f44336, #e91e63); }
+
+        /* Preguntas */
+        .pregunta {
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s;
+        }
+        .pregunta:hover { border-color: #1e3c72; background: #f8f9ff; }
+        .pregunta.correcta { border-color: #4caf50; background: #e8f5e9; }
+        .pregunta.incorrecta { border-color: #f44336; background: #ffebee; }
+        .pregunta.tiempo-agotado { border-color: #f44336; background: #fff3e0; }
+        .pregunta .enunciado {
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #333;
+            font-size: 1em;
+            line-height: 1.5;
+        }
+        .pregunta .tipo {
+            display: inline-block;
+            font-size: 0.75em;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .tipo.multiple { background: #e3f2fd; color: #1565c0; }
+        .tipo.vf { background: #fff3e0; color: #e65100; }
+        .tipo.sql { background: #e8f5e9; color: #2e7d32; }
+        .opciones label {
+            display: block;
+            padding: 10px 14px;
+            margin-bottom: 6px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-weight: normal;
+        }
+        .opciones label:hover { background: #e8eaf6; }
+        .opciones input[type="radio"] {
+            margin-right: 10px;
+            transform: scale(1.2);
+            accent-color: #1e3c72;
+        }
+        .opciones label.seleccionada { background: #e8eaf6; font-weight: 600; }
+        .opciones label.correcta-resaltada { background: #c8e6c9; font-weight: 700; }
+        .opciones label.incorrecta-resaltada {
+            background: #ffcdd2;
+            font-weight: 700;
+            text-decoration: line-through;
+        }
+
+        /* Editor SQL */
+        .sql-editor {
+            width: 100%;
+            min-height: 120px;
+            padding: 14px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 0.95em;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            resize: vertical;
+            line-height: 1.5;
+            transition: border-color 0.3s;
+        }
+        .sql-editor:focus {
+            outline: none;
+            border-color: #1e3c72;
+            box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.15);
+        }
+        .sql-editor:disabled { opacity: 0.7; cursor: not-allowed; }
+        .sql-hint {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 6px;
+            font-style: italic;
+        }
+        .sql-resultado {
+            margin-top: 10px;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+        .sql-resultado.ok {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            color: #2e7d32;
+        }
+        .sql-resultado.error {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            color: #c62828;
+        }
+        .sql-resultado code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* Resultados */
+        .resultado {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border-radius: 15px;
+            color: white;
+            margin-top: 20px;
+        }
+        .resultado h2 { font-size: 1.5em; margin-bottom: 10px; }
+        .resultado .nota { font-size: 3em; font-weight: 700; margin: 15px 0; }
+        .resultado .detalle { font-size: 1.1em; opacity: 0.9; }
+        .resultado .mensaje {
+            font-size: 1.2em;
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+        }
+        .resultado .estadisticas {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .resultado .estadistica {
+            background: rgba(255,255,255,0.15);
+            padding: 12px 20px;
+            border-radius: 10px;
+            min-width: 120px;
+        }
+        .resultado .estadistica .num { font-size: 1.8em; font-weight: 700; }
+        .resultado .estadistica .lbl { font-size: 0.85em; opacity: 0.9; }
+        .oculto { display: none; }
+        .acciones { text-align: center; margin-top: 20px; }
+        .explicacion {
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: #fff8e1;
+            border-left: 3px solid #ffc107;
+            border-radius: 6px;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .explicacion strong { color: #e65100; }
+        .explicacion code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+        .badge-tiempo {
+            display: inline-block;
+            background: #f44336;
+            color: white;
+            font-size: 0.75em;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+        .badge-sql {
+            display: inline-block;
+            background: #2e7d32;
+            color: white;
+            font-size: 0.75em;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <h1>🗄️ Examen Práctico de Bases de Datos</h1>
+        <p style="text-align:center; color:#666; margin-bottom:20px;">DDL · DML · Consultas SQL</p>
+
+        <!-- PANTALLA DE INICIO -->
+        <div id="pantallaInicio">
+            <div class="info-box">
+                <strong>Instrucciones:</strong> Este examen contiene <strong>20 preguntas</strong> enfocadas en
+                <strong>DDL</strong> (crear/modificar estructuras) y <strong>DML</strong> (insertar, consultar, actualizar, eliminar datos).
+                <br><br>
+                📝 <strong>Tipos de preguntas:</strong> Selección múltiple, Verdadero/Falso y <strong>Ejercicios prácticos de SQL</strong>
+                (deberás escribir la consulta).
+                <br><br>
+                ⏱️ <strong>Temporizador:</strong> Tienes <strong>45 segundos</strong> por pregunta. Si el tiempo se agota,
+                la pregunta se marca como incorrecta y avanza automáticamente.
+                <br><br>
+                🎯 <strong>Puntaje:</strong> Cada pregunta vale <strong>1 punto</strong>. Nota máxima: <strong>20 puntos</strong>.
+            </div>
+            <div class="form-group">
+                <label for="nombreEstudiante">👤 Ingresa tu nombre:</label>
+                <input type="text" id="nombreEstudiante" placeholder="Ej: Juan Pérez" maxlength="50">
+            </div>
+            <div class="acciones">
+                <button class="btn btn-primary" id="btnComenzar">Comenzar Examen</button>
+            </div>
+        </div>
+
+        <!-- PANTALLA DEL EXAMEN -->
+        <div id="pantallaExamen" class="oculto">
+            <div class="barra-superior">
+                <div class="info-pregunta" id="infoPregunta">Pregunta 1 de 20</div>
+                <div class="temporizador">
+                    <span>⏱️</span>
+                    <div class="circulo" id="circuloTiempo">45</div>
+                </div>
+            </div>
+            <div class="barra-tiempo">
+                <div class="barra-tiempo-interna" id="barraTiempo" style="width: 100%;"></div>
+            </div>
+
+            <div id="contenedorPreguntas" style="margin-top: 20px;"></div>
+
+            <div class="acciones">
+                <button class="btn btn-secondary" id="btnSaltar">⏭️ Saltar pregunta</button>
+            </div>
+        </div>
+
+        <!-- PANTALLA DE RESULTADOS -->
+        <div id="pantallaResultado" class="oculto">
+            <div class="resultado" id="resultadoFinal"></div>
+            <div class="acciones">
+                <button class="btn btn-primary" id="btnReintentar">🔄 Intentar de Nuevo</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // BANCO DE PREGUNTAS - BASADO EN LA GUÍA DE BASES DE DATOS
+        // ============================================================
+        const bancoPreguntas = [
+            // ==================== DDL (Definición de Datos) ====================
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué comando DDL se utiliza para crear una nueva tabla en la base de datos?',
+                opciones: ['INSERT', 'CREATE TABLE', 'ALTER TABLE', 'ADD TABLE'],
+                correcta: 1,
+                explicacion: 'CREATE TABLE se usa para crear una nueva tabla con sus columnas y restricciones.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué comando DDL se usa para modificar la estructura de una tabla existente (agregar, modificar o eliminar columnas)?',
+                opciones: ['UPDATE', 'MODIFY', 'ALTER TABLE', 'CHANGE'],
+                correcta: 2,
+                explicacion: 'ALTER TABLE permite modificar la estructura de una tabla existente.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué comando DDL elimina completamente una tabla y su estructura?',
+                opciones: ['DELETE', 'DROP TABLE', 'TRUNCATE', 'REMOVE'],
+                correcta: 1,
+                explicacion: 'DROP TABLE elimina la tabla completa, incluyendo su estructura y datos.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Cuál es la diferencia principal entre TRUNCATE y DELETE?',
+                opciones: [
+                    'TRUNCATE es más lento que DELETE',
+                    'TRUNCATE elimina la estructura de la tabla',
+                    'TRUNCATE vacía la tabla rápidamente sin eliminar su estructura',
+                    'DELETE no se puede usar con WHERE'
+                ],
+                correcta: 2,
+                explicacion: 'TRUNCATE vacía la tabla rápidamente (no permite WHERE) y mantiene la estructura. DELETE es más lento pero permite WHERE.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué restricción asegura que un campo no puede quedar vacío?',
+                opciones: ['UNIQUE', 'NOT NULL', 'DEFAULT', 'CHECK'],
+                correcta: 1,
+                explicacion: 'NOT NULL obliga a que el campo siempre tenga un valor.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué restricción garantiza que los valores de una columna sean únicos en toda la tabla?',
+                opciones: ['PRIMARY KEY', 'NOT NULL', 'UNIQUE', 'CHECK'],
+                correcta: 2,
+                explicacion: 'UNIQUE garantiza que no haya valores duplicados en esa columna.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué restricción se usa para validar que un valor cumpla una condición personalizada?',
+                opciones: ['DEFAULT', 'CHECK', 'UNIQUE', 'FOREIGN KEY'],
+                correcta: 1,
+                explicacion: 'CHECK permite validar condiciones, por ejemplo: CHECK (edad >= 18).'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué tipo de dato usarías para almacenar un precio con precisión exacta (ej: 19.99)?',
+                opciones: ['FLOAT', 'DOUBLE', 'DECIMAL(10,2)', 'INT'],
+                correcta: 2,
+                explicacion: 'DECIMAL(10,2) almacena números con precisión exacta: 10 dígitos totales, 2 decimales.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué tipo de dato almacena texto de longitud VARIABLE hasta 255 caracteres?',
+                opciones: ['CHAR(255)', 'VARCHAR(255)', 'TEXT', 'LONGTEXT'],
+                correcta: 1,
+                explicacion: 'VARCHAR(255) almacena texto de longitud variable hasta 255 caracteres.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué comando DDL se usa para renombrar una tabla u objeto?',
+                opciones: ['ALTER', 'RENAME', 'CHANGE', 'MODIFY'],
+                correcta: 1,
+                explicacion: 'RENAME se usa para renombrar objetos de la base de datos.'
+            },
+
+            // ==================== DML (Manipulación de Datos) ====================
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué comando DML se usa para agregar nuevos registros a una tabla?',
+                opciones: ['ADD', 'INSERT INTO', 'CREATE', 'UPDATE'],
+                correcta: 1,
+                explicacion: 'INSERT INTO agrega nuevos registros a una tabla.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué comando DML se usa para consultar datos de una o varias tablas?',
+                opciones: ['GET', 'SELECT', 'READ', 'FIND'],
+                correcta: 1,
+                explicacion: 'SELECT es el comando para consultar/leer datos.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué comando DML se usa para modificar datos existentes en una tabla?',
+                opciones: ['MODIFY', 'ALTER', 'UPDATE', 'CHANGE'],
+                correcta: 2,
+                explicacion: 'UPDATE modifica los datos existentes en una tabla.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué comando DML se usa para eliminar registros específicos de una tabla?',
+                opciones: ['DROP', 'REMOVE', 'DELETE', 'TRUNCATE'],
+                correcta: 2,
+                explicacion: 'DELETE elimina registros específicos (permite WHERE).'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué cláusula se usa en SELECT para filtrar registros según una condición?',
+                opciones: ['ORDER BY', 'GROUP BY', 'WHERE', 'HAVING'],
+                correcta: 2,
+                explicacion: 'WHERE filtra los registros que cumplen una condición.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué cláusula se usa para ordenar los resultados de una consulta?',
+                opciones: ['SORT BY', 'ORDER BY', 'GROUP BY', 'ARRANGE BY'],
+                correcta: 1,
+                explicacion: 'ORDER BY ordena los resultados (ASC o DESC).'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué tipo de JOIN devuelve solo las filas que tienen coincidencia en ambas tablas?',
+                opciones: ['LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'FULL JOIN'],
+                correcta: 2,
+                explicacion: 'INNER JOIN devuelve solo las filas con coincidencia en ambas tablas.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué función de agregación se usa para contar registros?',
+                opciones: ['SUM()', 'COUNT()', 'AVG()', 'MAX()'],
+                correcta: 1,
+                explicacion: 'COUNT() cuenta el número de registros.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué cláusula se usa para agrupar filas que tienen valores iguales en columnas específicas?',
+                opciones: ['ORDER BY', 'GROUP BY', 'WHERE', 'PARTITION BY'],
+                correcta: 1,
+                explicacion: 'GROUP BY agrupa filas con valores iguales para aplicar funciones de agregación.'
+            },
+            {
+                tipo: 'multiple',
+                enunciado: '¿Qué cláusula se usa para filtrar grupos después de un GROUP BY?',
+                opciones: ['WHERE', 'HAVING', 'FILTER', 'AFTER'],
+                correcta: 1,
+                explicacion: 'HAVING filtra grupos después de GROUP BY (WHERE filtra antes).'
+            },
+
+            // ==================== VERDADERO / FALSO ====================
+            {
+                tipo: 'vf',
+                enunciado: 'DDL se usa para manipular los datos dentro de las tablas (INSERT, UPDATE, DELETE).',
+                correcta: false,
+                explicacion: 'Falso. DDL define/modifica la ESTRUCTURA. DML manipula los DATOS.'
+            },
+            {
+                tipo: 'vf',
+                enunciado: 'CREATE, ALTER, DROP y TRUNCATE son comandos DDL.',
+                correcta: true,
+                explicacion: 'Verdadero. Todos son comandos del Lenguaje de Definición de Datos.'
+            },
+            {
+                tipo: 'vf',
+                enunciado: 'INSERT, SELECT, UPDATE y DELETE son comandos DML.',
+                correcta: true,
+                explicacion: 'Verdadero. Son los comandos del Lenguaje de Manipulación de Datos.'
+            },
+            {
+                tipo: 'vf',
+                enunciado: 'Una clave primaria (PRIMARY KEY) puede contener valores NULL.',
+                correcta: false,
+                explicacion: 'Falso. PRIMARY KEY no permite NULL y debe ser única.'
+            },
+            {
+                tipo: 'vf',
+                enunciado: 'Una clave foránea (FOREIGN KEY) referencia a la clave primaria de otra tabla.',
+                correcta: true,
+                explicacion: 'Verdadero. FOREIGN KEY crea una relación con otra tabla.'
+            },
+            {
+                tipo: 'vf',
+                enunciado: 'El comando DELETE sin cláusula WHERE elimina todos los registros de la tabla.',
+                correcta: true,
+                explicacion: 'Verdadero. DELETE FROM tabla sin WHERE elimina todos los registros.'
+            },
+            {
+                tipo: 'vf',
+                enunciado: 'TRUNCATE permite usar la cláusula WHERE para filtrar qué registros eliminar.',
+                correcta: false,
+                explicacion: 'Falso. TRUNCATE vacía toda la tabla, no permite WHERE.'
+            },
+            {
+                tipo: 'vf',
+                enunciado: 'Una transacción garantiza que varias operaciones se ejecuten como una sola unidad (todo o nada).',
+                correcta: true,
+                explicacion: 'Verdadero. Las transacciones cumplen con ACID (Atomicidad, Consistencia, Aislamiento, Durabilidad).'
+            },
+            {
+                tipo: 'vf',
+                enunciado: 'SQL es un lenguaje de programación, no un lenguaje de consultas.',
+                correcta: false,
+                explicacion: 'Falso. SQL es un lenguaje de consultas (Structured Query Language) para interactuar con bases de datos.'
+            },
+            {
+                tipo: 'vf',
+                enunciado: 'La cláusula WHERE se ejecuta después de GROUP BY en una consulta SQL.',
+                correcta: false,
+                explicacion: 'Falso. WHERE se ejecuta ANTES de GROUP BY. HAVING se ejecuta después.'
+            },
+            {
+                tipo: 'vf',
+                enunciado: 'Un índice acelera las búsquedas en una tabla pero ralentiza las inserciones.',
+                correcta: true,
+                explicacion: 'Verdadero. Los índices aceleran SELECT pero añaden coste en INSERT/UPDATE.'
+            },
+            {
+                tipo: 'vf',
+                enunciado: 'Una vista (VIEW) almacena físicamente los datos como una tabla normal.',
+                correcta: false,
+                explicacion: 'Falso. Una vista es una tabla virtual basada en el resultado de una consulta.'
+            },
+            {
+                tipo: 'vf',
+                enunciado: 'AUTO_INCREMENT permite que un campo numérico se genere automáticamente.',
+                correcta: true,
+                explicacion: 'Verdadero. AUTO_INCREMENT genera valores únicos automáticamente.'
+            },
+            {
+                tipo: 'vf',
+                enunciado: 'La restricción DEFAULT establece un valor por defecto si no se especifica uno.',
+                correcta: true,
+                explicacion: 'Verdadero. DEFAULT asigna un valor cuando no se proporciona uno.'
+            },
+            {
+                tipo: 'vf',
+                enunciado: 'El comando UPDATE sin cláusula WHERE actualiza todos los registros de la tabla.',
+                correcta: true,
+                explicacion: 'Verdadero. UPDATE tabla SET col = valor sin WHERE actualiza TODOS los registros.'
+            },
+
+            // ==================== EJERCICIOS PRÁCTICOS SQL ====================
+            {
+                tipo: 'sql',
+                enunciado: 'Escribe la consulta DDL para crear una tabla llamada "clientes" con las columnas: id (entero, clave primaria, autoincremental), nombre (texto variable de 100, no nulo), email (texto variable de 150, único) y ciudad (texto variable de 50).',
+                respuestaEsperada: ['create table clientes', 'id int primary key auto_increment', 'nombre varchar(100) not null', 'email varchar(150) unique', 'ciudad varchar(50)'],
+                palabrasClave: ['create table clientes', 'int', 'primary key', 'auto_increment', 'varchar', 'not null', 'unique'],
+                explicacion: 'CREATE TABLE clientes (id INT PRIMARY KEY AUTO_INCREMENT, nombre VARCHAR(100) NOT NULL, email VARCHAR(150) UNIQUE, ciudad VARCHAR(50));',
+                pista: 'Usa CREATE TABLE, INT, PRIMARY KEY, AUTO_INCREMENT, VARCHAR, NOT NULL, UNIQUE.'
+            },
+            {
+                tipo: 'sql',
+                enunciado: 'Escribe la consulta DML para insertar un nuevo cliente en la tabla "clientes" con los valores: nombre="Ana García", email="ana@email.com", ciudad="Madrid".',
+                respuestaEsperada: ['insert into clientes', 'values', 'ana garcía', 'ana@email.com', 'madrid'],
+                palabrasClave: ['insert into clientes', 'values', 'ana', 'email', 'madrid'],
+                explicacion: "INSERT INTO clientes (nombre, email, ciudad) VALUES ('Ana García', 'ana@email.com', 'Madrid');",
+                pista: 'Usa INSERT INTO ... (columnas) VALUES (valores).'
+            },
+            {
+                tipo: 'sql',
+                enunciado: 'Escribe la consulta DML para seleccionar el nombre y email de todos los clientes cuya ciudad sea "Madrid".',
+                respuestaEsperada: ['select nombre', 'email', 'from clientes', 'where ciudad', 'madrid'],
+                palabrasClave: ['select', 'nombre', 'email', 'from clientes', 'where', 'ciudad', 'madrid'],
+                explicacion: "SELECT nombre, email FROM clientes WHERE ciudad = 'Madrid';",
+                pista: 'Usa SELECT columnas FROM tabla WHERE condición.'
+            },
+            {
+                tipo: 'sql',
+                enunciado: 'Escribe la consulta DML para actualizar el email del cliente con id=5 a "nuevo@email.com".',
+                respuestaEsperada: ['update clientes', 'set email', 'nuevo@email.com', 'where id', '5'],
+                palabrasClave: ['update clientes', 'set', 'email', 'nuevo@email.com', 'where', 'id', '5'],
+                explicacion: "UPDATE clientes SET email = 'nuevo@email.com' WHERE id = 5;",
+                pista: 'Usa UPDATE tabla SET columna = valor WHERE condición.'
+            },
+            {
+                tipo: 'sql',
+                enunciado: 'Escribe la consulta DML para eliminar todos los clientes de la ciudad "Barcelona".',
+                respuestaEsperada: ['delete from clientes', 'where ciudad', 'barcelona'],
+                palabrasClave: ['delete from clientes', 'where', 'ciudad', 'barcelona'],
+                explicacion: "DELETE FROM clientes WHERE ciudad = 'Barcelona';",
+                pista: 'Usa DELETE FROM tabla WHERE condición.'
+            },
+            {
+                tipo: 'sql',
+                enunciado: 'Escribe una consulta DML que cuente cuántos clientes hay por ciudad, mostrando la ciudad y el total. Ordena de mayor a menor.',
+                respuestaEsperada: ['select ciudad', 'count', 'from clientes', 'group by ciudad', 'order by', 'desc'],
+                palabrasClave: ['select', 'ciudad', 'count', 'from clientes', 'group by', 'ciudad', 'order by', 'desc'],
+                explicacion: "SELECT ciudad, COUNT(*) AS total FROM clientes GROUP BY ciudad ORDER BY total DESC;",
+                pista: 'Usa SELECT ciudad, COUNT(*) ... GROUP BY ciudad ORDER BY ... DESC.'
+            },
+            {
+                tipo: 'sql',
+                enunciado: 'Escribe una consulta DML que seleccione los libros con precio mayor al precio promedio de todos los libros (usa una subconsulta).',
+                respuestaEsperada: ['select', 'from libros', 'where precio', 'select avg(precio)', 'from libros'],
+                palabrasClave: ['select', 'from libros', 'where', 'precio', 'avg', 'precio'],
+                explicacion: "SELECT * FROM libros WHERE precio > (SELECT AVG(precio) FROM libros);",
+                pista: 'Usa una subconsulta: SELECT AVG(precio) FROM libros.'
+            },
+            {
+                tipo: 'sql',
+                enunciado: 'Escribe una consulta DML que muestre el nombre del autor y la cantidad de libros que tiene, usando INNER JOIN entre autores y libros, agrupando por autor.',
+                respuestaEsperada: ['select', 'nombre', 'count', 'from autores', 'inner join libros', 'on', 'group by'],
+                palabrasClave: ['select', 'nombre', 'count', 'from autores', 'join', 'libros', 'on', 'group by'],
+                explicacion: "SELECT a.nombre, COUNT(*) AS total FROM autores a INNER JOIN libros l ON a.autor_id = l.autor_id GROUP BY a.nombre;",
+                pista: 'Usa INNER JOIN ... ON ... GROUP BY.'
+            },
+            {
+                tipo: 'sql',
+                enunciado: 'Escribe la consulta DDL para agregar una columna llamada "telefono" de tipo VARCHAR(20) a la tabla "clientes".',
+                respuestaEsperada: ['alter table clientes', 'add column telefono', 'varchar(20)'],
+                palabrasClave: ['alter table clientes', 'add column', 'telefono', 'varchar', '20'],
+                explicacion: "ALTER TABLE clientes ADD COLUMN telefono VARCHAR(20);",
+                pista: 'Usa ALTER TABLE ... ADD COLUMN ...'
+            },
+            {
+                tipo: 'sql',
+                enunciado: 'Escribe una consulta DML que muestre los libros ordenados por precio de mayor a menor y solo muestre los 5 más caros (usa LIMIT).',
+                respuestaEsperada: ['select', 'from libros', 'order by precio', 'desc', 'limit 5'],
+                palabrasClave: ['select', 'from libros', 'order by', 'precio', 'desc', 'limit', '5'],
+                explicacion: "SELECT * FROM libros ORDER BY precio DESC LIMIT 5;",
+                pista: 'Usa ORDER BY ... DESC LIMIT 5.'
+            }
+        ];
+
+        // ============================================================
+        // CONFIGURACIÓN
+        // ============================================================
+        const TIEMPO_POR_PREGUNTA = 45; // segundos (más tiempo para SQL)
+        const TOTAL_PREGUNTAS = 20;
+
+        // ============================================================
+        // ESTADO DEL EXAMEN
+        // ============================================================
+        let preguntasSeleccionadas = [];
+        let nombreEstudiante = '';
+        let respuestasUsuario = [];
+        let indiceActual = 0;
+        let tiempoRestante = TIEMPO_POR_PREGUNTA;
+        let intervaloTemporizador = null;
+        let respuestasCorrectas = 0;
+        let preguntasAgotadas = 0;
+
+        // ============================================================
+        // REFERENCIAS AL DOM
+        // ============================================================
+        const pantallaInicio = document.getElementById('pantallaInicio');
+        const pantallaExamen = document.getElementById('pantallaExamen');
+        const pantallaResultado = document.getElementById('pantallaResultado');
+        const contenedorPreguntas = document.getElementById('contenedorPreguntas');
+        const infoPregunta = document.getElementById('infoPregunta');
+        const circuloTiempo = document.getElementById('circuloTiempo');
+        const barraTiempo = document.getElementById('barraTiempo');
+        const resultadoFinal = document.getElementById('resultadoFinal');
+        const inputNombre = document.getElementById('nombreEstudiante');
+        const btnComenzar = document.getElementById('btnComenzar');
+        const btnSaltar = document.getElementById('btnSaltar');
+        const btnReintentar = document.getElementById('btnReintentar');
+
+        // ============================================================
+        // FUNCIONES AUXILIARES
+        // ============================================================
+        function mezclar(array) {
+            const copia = [...array];
+            for (let i = copia.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copia[i], copia[j]] = [copia[j], copia[i]];
+            }
+            return copia;
+        }
+
+        function seleccionarPreguntas() {
+            const multiples = bancoPreguntas.filter(p => p.tipo === 'multiple');
+            const vf = bancoPreguntas.filter(p => p.tipo === 'vf');
+            const sql = bancoPreguntas.filter(p => p.tipo === 'sql');
+
+            // 8 múltiple + 6 V/F + 6 SQL = 20
+            const seleccionMultiples = mezclar(multiples).slice(0, 8);
+            const seleccionVF = mezclar(vf).slice(0, 6);
+            const seleccionSQL = mezclar(sql).slice(0, 6);
+
+            return mezclar([...seleccionMultiples, ...seleccionVF, ...seleccionSQL]);
+        }
+
+        // ============================================================
+        // TEMPORIZADOR
+        // ============================================================
+        function iniciarTemporizador() {
+            detenerTemporizador();
+            tiempoRestante = TIEMPO_POR_PREGUNTA;
+            actualizarVistaTemporizador();
+
+            intervaloTemporizador = setInterval(() => {
+                tiempoRestante--;
+                actualizarVistaTemporizador();
+                if (tiempoRestante <= 0) {
+                    detenerTemporizador();
+                    tiempoAgotado();
+                }
+            }, 1000);
+        }
+
+        function detenerTemporizador() {
+            if (intervaloTemporizador) {
+                clearInterval(intervaloTemporizador);
+                intervaloTemporizador = null;
+            }
+        }
+
+        function actualizarVistaTemporizador() {
+            circuloTiempo.textContent = tiempoRestante;
+            const porcentaje = (tiempoRestante / TIEMPO_POR_PREGUNTA) * 100;
+            barraTiempo.style.width = porcentaje + '%';
+
+            circuloTiempo.classList.remove('advertencia', 'peligro');
+            barraTiempo.classList.remove('advertencia', 'peligro');
+
+            if (tiempoRestante <= 10) {
+                circuloTiempo.classList.add('peligro');
+                barraTiempo.classList.add('peligro');
+            } else if (tiempoRestante <= 22) {
+                circuloTiempo.classList.add('advertencia');
+                barraTiempo.classList.add('advertencia');
+            }
+        }
+
+        // ============================================================
+        // FLUJO DEL EXAMEN
+        // ============================================================
+        function iniciarExamen() {
+            const nombre = inputNombre.value.trim();
+            if (!nombre) {
+                alert('Por favor, ingresa tu nombre para comenzar.');
+                inputNombre.focus();
+                return;
+            }
+
+            nombreEstudiante = nombre;
+            preguntasSeleccionadas = seleccionarPreguntas();
+            respuestasUsuario = new Array(preguntasSeleccionadas.length).fill(null);
+            indiceActual = 0;
+            respuestasCorrectas = 0;
+            preguntasAgotadas = 0;
+
+            pantallaInicio.classList.add('oculto');
+            pantallaExamen.classList.remove('oculto');
+            pantallaResultado.classList.add('oculto');
+
+            mostrarPreguntaActual();
+        }
+
+        function mostrarPreguntaActual() {
+            detenerTemporizador();
+            contenedorPreguntas.innerHTML = '';
+
+            if (indiceActual >= preguntasSeleccionadas.length) {
+                finalizarExamen();
+                return;
+            }
+
+            const pregunta = preguntasSeleccionadas[indiceActual];
+            infoPregunta.textContent = `Pregunta ${indiceActual + 1} de ${preguntasSeleccionadas.length}`;
+
+            const divPregunta = document.createElement('div');
+            divPregunta.className = 'pregunta';
+            divPregunta.id = `pregunta-${indiceActual}`;
+
+            // Tipo
+            const spanTipo = document.createElement('span');
+            spanTipo.className = `tipo ${pregunta.tipo}`;
+            const tiposTexto = { multiple: 'Selección Múltiple', vf: 'Verdadero / Falso', sql: 'Ejercicio SQL' };
+            spanTipo.textContent = tiposTexto[pregunta.tipo];
+            divPregunta.appendChild(spanTipo);
+
+            // Enunciado
+            const pEnunciado = document.createElement('div');
+            pEnunciado.className = 'enunciado';
+            pEnunciado.textContent = `${indiceActual + 1}. ${pregunta.enunciado}`;
+            divPregunta.appendChild(pEnunciado);
+
+            // Contenido según tipo
+            if (pregunta.tipo === 'multiple') {
+                const divOpciones = document.createElement('div');
+                divOpciones.className = 'opciones';
+                pregunta.opciones.forEach((opcion, i) => {
+                    const label = document.createElement('label');
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = `pregunta-${indiceActual}`;
+                    radio.value = i;
+                    radio.addEventListener('change', () => seleccionarRespuesta(i));
+                    label.appendChild(radio);
+                    label.appendChild(document.createTextNode(opcion));
+                    divOpciones.appendChild(label);
+                });
+                divPregunta.appendChild(divOpciones);
+
+            } else if (pregunta.tipo === 'vf') {
+                const divOpciones = document.createElement('div');
+                divOpciones.className = 'opciones';
+                const opcionesVF = [
+                    { texto: 'Verdadero', valor: true },
+                    { texto: 'Falso', valor: false }
+                ];
+                opcionesVF.forEach(op => {
+                    const label = document.createElement('label');
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.name = `pregunta-${indiceActual}`;
+                    radio.value = op.valor;
+                    radio.addEventListener('change', () => seleccionarRespuesta(op.valor));
+                    label.appendChild(radio);
+                    label.appendChild(document.createTextNode(op.texto));
+                    divOpciones.appendChild(label);
+                });
+                divPregunta.appendChild(divOpciones);
+
+            } else if (pregunta.tipo === 'sql') {
+                const editor = document.createElement('textarea');
+                editor.className = 'sql-editor';
+                editor.id = `sql-editor-${indiceActual}`;
+                editor.placeholder = '-- Escribe tu consulta SQL aquí...\n-- Ejemplo: SELECT * FROM tabla WHERE condicion;';
+                editor.spellcheck = false;
+                divPregunta.appendChild(editor);
+
+                const hint = document.createElement('div');
+                hint.className = 'sql-hint';
+                hint.textContent = '💡 Pista: ' + pregunta.pista;
+                divPregunta.appendChild(hint);
+
+                const btnVerificar = document.createElement('button');
+                btnVerificar.className = 'btn btn-primary';
+                btnVerificar.textContent = '✅ Verificar Consulta';
+                btnVerificar.style.marginTop = '10px';
+                btnVerificar.addEventListener('click', () => verificarSQL(indiceActual));
+                divPregunta.appendChild(btnVerificar);
+            }
+
+            contenedorPreguntas.appendChild(divPregunta);
+            iniciarTemporizador();
+        }
+
+        // ============================================================
+        // VERIFICACIÓN DE RESPUESTAS
+        // ============================================================
+        function seleccionarRespuesta(valor) {
+            respuestasUsuario[indiceActual] = valor;
+            detenerTemporizador();
+
+            const divPregunta = document.getElementById(`pregunta-${indiceActual}`);
+            divPregunta.querySelectorAll('input[type="radio"]').forEach(r => r.disabled = true);
+
+            evaluarPreguntaActual();
+
+            setTimeout(() => {
+                indiceActual++;
+                mostrarPreguntaActual();
+            }, 1800);
+        }
+
+        function verificarSQL(index) {
+            const pregunta = preguntasSeleccionadas[index];
+            const editor = document.getElementById(`sql-editor-${index}`);
+            const respuesta = editor.value.trim().toLowerCase();
+
+            if (!respuesta) {
+                alert('Por favor, escribe una consulta SQL antes de verificar.');
+                return;
+            }
+
+            detenerTemporizador();
+
+            // Evaluar por palabras clave
+            const palabrasClave = pregunta.palabrasClave.map(p => p.toLowerCase());
+            const encontradas = palabrasClave.filter(p => respuesta.includes(p));
+            const porcentaje = (encontradas.length / palabrasClave.length) * 100;
+            const esCorrecta = porcentaje >= 70; // 70% de coincidencia mínima
+
+            respuestasUsuario[index] = esCorrecta;
+
+            // Deshabilitar editor
+            editor.disabled = true;
+            const btn = editor.parentElement.querySelector('.btn');
+            if (btn) btn.disabled = true;
+
+            // Mostrar resultado
+            const divPregunta = document.getElementById(`pregunta-${index}`);
+            const divResultado = document.createElement('div');
+            divResultado.className = `sql-resultado ${esCorrecta ? 'ok' : 'error'}`;
+            divResultado.innerHTML = `
+                <strong>${esCorrecta ? '✅ ¡Correcto!' : '❌ Incorrecto'}</strong> (${encontradas.length}/${palabrasClave.length} palabras clave encontradas)<br>
+                <strong>Respuesta esperada:</strong> <code>${pregunta.explicacion}</code>
+            `;
+            divPregunta.appendChild(divResultado);
+
+            if (esCorrecta) {
+                respuestasCorrectas++;
+                divPregunta.classList.add('correcta');
+            } else {
+                divPregunta.classList.add('incorrecta');
+            }
+
+            setTimeout(() => {
+                indiceActual++;
+                mostrarPreguntaActual();
+            }, 2500);
+        }
+
+        function tiempoAgotado() {
+            preguntasAgotadas++;
+            respuestasUsuario[indiceActual] = null;
+
+            const divPregunta = document.getElementById(`pregunta-${indiceActual}`);
+            if (divPregunta) {
+                divPregunta.classList.add('tiempo-agotado');
+                divPregunta.querySelectorAll('input[type="radio"], textarea, button').forEach(el => el.disabled = true);
+
+                const badge = document.createElement('span');
+                badge.className = 'badge-tiempo';
+                badge.textContent = '⏱️ Tiempo agotado';
+                divPregunta.querySelector('.enunciado').appendChild(badge);
+
+                const pregunta = preguntasSeleccionadas[indiceActual];
+                const divExplicacion = document.createElement('div');
+                divExplicacion.className = 'explicacion';
+                if (pregunta.tipo === 'sql') {
+                    divExplicacion.innerHTML = `<strong>❌ Tiempo agotado:</strong> <code>${pregunta.explicacion}</code>`;
+                } else {
+                    divExplicacion.innerHTML = `<strong>❌ Tiempo agotado:</strong> ${pregunta.explicacion}`;
+                }
+                divPregunta.appendChild(divExplicacion);
+            }
+
+            setTimeout(() => {
+                indiceActual++;
+                mostrarPreguntaActual();
+            }, 2200);
+        }
+
+        function evaluarPreguntaActual() {
+            const pregunta = preguntasSeleccionadas[indiceActual];
+            const respuesta = respuestasUsuario[indiceActual];
+            const divPregunta = document.getElementById(`pregunta-${indiceActual}`);
+
+            let esCorrecta = false;
+            if (pregunta.tipo === 'multiple') {
+                esCorrecta = respuesta === pregunta.correcta;
+            } else if (pregunta.tipo === 'vf') {
+                esCorrecta = respuesta === pregunta.correcta;
+            }
+
+            if (esCorrecta) {
+                respuestasCorrectas++;
+                divPregunta.classList.add('correcta');
+            } else {
+                divPregunta.classList.add('incorrecta');
+            }
+
+            // Resaltar opciones
+            const labels = divPregunta.querySelectorAll('.opciones label');
+            labels.forEach((label, i) => {
+                const radio = label.querySelector('input[type="radio"]');
+                let valorOpcion;
+                if (pregunta.tipo === 'multiple') {
+                    valorOpcion = i;
+                } else {
+                    valorOpcion = radio.value === 'true';
+                }
+                if (valorOpcion === pregunta.correcta) {
+                    label.classList.add('correcta-resaltada');
+                } else if (valorOpcion === respuesta && !esCorrecta) {
+                    label.classList.add('incorrecta-resaltada');
+                }
+            });
+
+            const divExplicacion = document.createElement('div');
+            divExplicacion.className = 'explicacion';
+            divExplicacion.innerHTML = `<strong>${esCorrecta ? '✅ Correcto' : '❌ Incorrecto'}:</strong> ${pregunta.explicacion}`;
+            divPregunta.appendChild(divExplicacion);
+        }
+
+        function saltarPregunta() {
+            if (indiceActual >= preguntasSeleccionadas.length) return;
+            detenerTemporizador();
+            if (respuestasUsuario[indiceActual] === null) {
+                respuestasUsuario[indiceActual] = null;
+            }
+            indiceActual++;
+            mostrarPreguntaActual();
+        }
+
+        function finalizarExamen() {
+            detenerTemporizador();
+
+            const total = preguntasSeleccionadas.length;
+            const puntaje = respuestasCorrectas;
+            const porcentaje = Math.round((puntaje / total) * 100);
+
+            let mensaje = '';
+            if (puntaje >= 18) mensaje = '🏆 ¡Excelente! Dominas DDL y DML.';
+            else if (puntaje >= 14) mensaje = '👍 ¡Buen trabajo! Vas por buen camino.';
+            else if (puntaje >= 10) mensaje = '📖 Aprobado, pero puedes mejorar.';
+            else mensaje = '💪 Necesitas repasar la guía. ¡Inténtalo de nuevo!';
+
+            const sinResponder = respuestasUsuario.filter(r => r === null).length;
+
+            resultadoFinal.innerHTML = `
+                <h2>📊 Resultado del Examen</h2>
+                <p style="font-size:1.1em;">Estudiante: <strong>${nombreEstudiante}</strong></p>
+                <div class="nota">${puntaje} / ${total}</div>
+                <div class="detalle">Porcentaje: ${porcentaje}%</div>
+                <div class="estadisticas">
+                    <div class="estadistica">
+                        <div class="num" style="color:#8bc34a;">${puntaje}</div>
+                        <div class="lbl">Correctas</div>
+                    </div>
+                    <div class="estadistica">
+                        <div class="num" style="color:#ff9800;">${sinResponder}</div>
+                        <div class="lbl">Sin responder</div>
+                    </div>
+                    <div class="estadistica">
+                        <div class="num" style="color:#f44336;">${preguntasAgotadas}</div>
+                        <div class="lbl">Tiempo agotado</div>
+                    </div>
+                </div>
+                <div class="mensaje">${mensaje}</div>
+            `;
+
+            pantallaExamen.classList.add('oculto');
+            pantallaResultado.classList.remove('oculto');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function reiniciarExamen() {
+            detenerTemporizador();
+            pantallaResultado.classList.add('oculto');
+            pantallaInicio.classList.remove('oculto');
+            inputNombre.value = '';
+            inputNombre.focus();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ============================================================
+        // EVENTOS
+        // ============================================================
+        btnComenzar.addEventListener('click', iniciarExamen);
+        btnSaltar.addEventListener('click', saltarPregunta);
+        btnReintentar.addEventListener('click', reiniciarExamen);
+
+        inputNombre.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') iniciarExamen();
+        });
+    </script>
+</body>
+</html>
