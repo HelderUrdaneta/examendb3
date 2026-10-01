@@ -302,6 +302,24 @@
             border-radius: 4px;
             font-family: 'Courier New', monospace;
         }
+        .ejemplo {
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: #eef7ff;
+            border-left: 3px solid #2196f3;
+            border-radius: 6px;
+            font-size: 0.95em;
+            color: #223a5e;
+        }
+        .ejemplo code {
+            background: #f5f5f5;
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            display: block;
+            margin-top: 6px;
+            white-space: pre-wrap;
+        }
         .badge-tiempo {
             display: inline-block;
             background: #f44336;
@@ -697,6 +715,15 @@
             pEnunciado.textContent = `${indiceActual + 1}. ${pregunta.enunciado}`;
             divPregunta.appendChild(pEnunciado);
 
+            // Mostrar guía debajo del enunciado para ejercicios SQL (usar 'pista' en vez de la respuesta completa)
+            if (esSQL) {
+                const divEjemplo = document.createElement('div');
+                divEjemplo.className = 'ejemplo';
+                const guia = pregunta.pista ? pregunta.pista : (pregunta.palabrasClave ? pregunta.palabrasClave.join(', ') : 'Revisa la estructura SQL: SELECT ... FROM ... JOIN ... ON ... GROUP BY ...');
+                divEjemplo.innerHTML = `<strong>Guía:</strong> ${guia}`;
+                divPregunta.appendChild(divEjemplo);
+            }
+
             // Contenido según tipo
             if (pregunta.tipo === 'multiple') {
                 const divOpciones = document.createElement('div');
@@ -738,7 +765,7 @@
                 const editor = document.createElement('textarea');
                 editor.className = 'sql-editor';
                 editor.id = `sql-editor-${indiceActual}`;
-                editor.placeholder = '-- Escribe tu consulta SQL aquí...\n-- Ejemplo: SELECT * FROM tabla WHERE condicion;';
+                editor.placeholder = '-- Escribe tu consulta SQL aquí...';
                 editor.spellcheck = false;
                 divPregunta.appendChild(editor);
 
